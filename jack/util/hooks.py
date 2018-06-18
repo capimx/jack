@@ -7,6 +7,12 @@ from time import strftime, localtime
 from time import time
 from typing import List, Tuple, Mapping
 
+# avoid 'Python is not installed as a framework' error for mac users
+import platform
+if platform.system() == "Darwin":
+    import matplotlib as mpl
+    mpl.use('TkAgg')
+
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
