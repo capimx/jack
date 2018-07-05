@@ -244,8 +244,8 @@ def _np_softmax(x):
     return e_x / e_x.sum(axis=0)
 
 
-def tweak(logits, b1, b2):
-    return logits + np.array([float(b1), float(b2), 0.])
+def tweak(logits):
+    return logits + HyperParams.OutputLayer.bias
 
 
 class SimpleClassificationOutputModule(OutputModule):
