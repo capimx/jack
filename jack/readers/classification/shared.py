@@ -243,8 +243,10 @@ def _np_softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)
 
-def tweak(logits):
-    return logits + np.array([1., 0., 0.])
+
+def tweak(logits, b1, b2):
+    return logits + np.array([float(b1), float(b2), 0.])
+
 
 class SimpleClassificationOutputModule(OutputModule):
     def __init__(self, shared_resources=None):
