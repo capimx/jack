@@ -53,7 +53,7 @@ conda deactivate && conda activate jack
 # in ~/jack dir
 
 set -o xtrace > /dev/null
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".:../fever" anaconda-python3-gpu ../fever/jack_reader.py ${predicted_evidence} ${label_pred} --saved_reader ${reader} --bias1 "${bias1}" --bias2 "${bias2}" --batch_size 256 ${prependtitle} ${prependlinum}
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".:../fever" anaconda-python3-gpu ../fever/jack_reader.py ${predicted_evidence} ${label_pred} --saved_reader ${reader} --bias1 "${bias1}" --bias2 "${bias2}" --batch_size 64 ${prependtitle} ${prependlinum}
 set +o xtrace > /dev/null
 
 cd ~/fever-baselines
