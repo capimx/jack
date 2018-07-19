@@ -213,6 +213,14 @@ class Ports:
                                        "Represents the embedded question",
                                        "[Q, max_num_question_tokens, N]")
 
+        emb_elmo_support = TensorPort(np.float32, [None, None, None], "emb_elmo_support",
+                              "ELMo embeddings corresponding to support and question",
+                              "[batch_size, max_num_tokens, elmo_embedding_dim]")
+
+        emb_elmo_question = TensorPort(np.float32, [None, None, None], "emb_elmo_question",
+                              "ELMo embeddings corresponding to support and question",
+                              "[batch_size, max_num_tokens, elmo_embedding_dim]")
+
         # character based information
         word_chars = TensorPort(np.int32, [None, None], "word_chars",
                                 "Represents questions using symbol vectors",

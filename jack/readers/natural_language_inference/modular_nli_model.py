@@ -20,9 +20,11 @@ class ModularNLIModel(AbstractSingleSupportClassificationModel):
                       'char_hypothesis': char_emb_question, 'char_premise': char_emb_support}
             inputs_length = {'hypothesis': tensors.question_length, 'premise': tensors.support_length,
                              'char_hypothesis': tensors.question_length, 'char_premise': tensors.support_length}
+            elmo = {"hypothesis": tensors.emb_elmo_question, "premise": tensors.emb_elmo_support}
         else:
             inputs = {'hypothesis': embedded_question, 'premise': embedded_support}
             inputs_length = {'hypothesis': tensors.question_length, 'premise': tensors.support_length}
+            elmo = {"hypothesis": tensors.emb_elmo_question, "premise": tensors.emb_elmo_support}
 
         if dropout:
             for k in inputs:
@@ -32,7 +34,7 @@ class ModularNLIModel(AbstractSingleSupportClassificationModel):
 
         encoder_config = model['encoder_layer']
         encoded, _, _ = modular_encoder(
-            encoder_config, inputs, inputs_length, inputs_mapping, repr_dim, dropout, tensors.is_eval)
+            encoder_config, inputs, inputs_length, inputs_mapping, repr_dim, dropout, tensors.is_eval, elmo=elmo)
 
         with tf.variable_scope('prediction_layer'):
             prediction_layer_config = model['prediction_layer']

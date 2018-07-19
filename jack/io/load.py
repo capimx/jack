@@ -30,6 +30,8 @@ def load_jack(path, max_count=None):
 
     """
     # We load json directly instead
+    # import ipdb; ipdb.set_trace()
+
     with open(path) as f:
         jtr_data = json.load(f)
 

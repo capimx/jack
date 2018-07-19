@@ -23,10 +23,12 @@ def _unique_module_name(module, layer_depth):
     return name
 
 
-def modular_encoder(encoder_config, inputs, inputs_length, inputs_mapping, default_repr_dim, dropout, is_eval):
+def modular_encoder(encoder_config, inputs, inputs_length, inputs_mapping, default_repr_dim, dropout, is_eval, elmo):
+    import ipdb; ipdb.set_trace()
     outputs = dict(inputs)
     outputs_length = dict(inputs_length)
     outputs_mapping = dict(inputs_mapping)
+    elmo = dict(elmo)
     seen_layer = set()
 
     def encode_module(module):
@@ -88,7 +90,8 @@ def modular_encoder(encoder_config, inputs, inputs_length, inputs_mapping, defau
                 if module.get('dropout') is True:
                     # set dropout to default dropout
                     module['dropout'] = dropout
-                outputs[out_key] = encoder(outputs[key], outputs_length[key], reuse=reuse, is_eval=is_eval, **module)
+                # import ipdb; ipdb.set_trace()
+                outputs[out_key] = encoder(outputs[key], outputs_length[key], elmo_emb=elmo[key], reuse=reuse, is_eval=is_eval, **module)
             outputs_length[out_key] = outputs_length[key]
             outputs_mapping[out_key] = outputs_mapping.get(key)
         except Exception as e:

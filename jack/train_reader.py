@@ -103,6 +103,7 @@ def train_tensorflow(reader, train_data, test_data, dev_data, configuration: dic
         epoch_interval=(1 if validation_interval is None else None),
         write_metrics_to=write_metrics_to))
 
+    # import ipdb; ipdb.set_trace()
     # Train
     reader.train(tf_optimizer, train_data, batch_size, max_epochs=epochs, hooks=hooks,
                  l2=l2, clip=clip_value, clip_op=tf.clip_by_value, summary_writer=sw)
@@ -145,6 +146,7 @@ def train_pytorch(reader, train_data, test_data, dev_data, configuration: dict, 
     save_dir = configuration.get('save_dir')
     write_metrics_to = configuration.get('write_metrics_to')
 
+    # import ipdb; ipdb.set_trace()
     # need setup here already :(
     reader.setup_from_data(train_data, is_training=True)
 
@@ -203,6 +205,7 @@ def train_pytorch(reader, train_data, test_data, dev_data, configuration: dict, 
         epoch_interval=(1 if validation_interval is None else None),
         write_metrics_to=write_metrics_to))
 
+    # import ipdb; ipdb.set_trace()
     # Train
     reader.train(torch_optimizer, train_data, batch_size, max_epochs=epochs, hooks=hooks,
                  l2=l2, clip=clip_value)

@@ -10,7 +10,7 @@ from jack.util.tf.highway import highway_network
 logger = logging.getLogger(__name__)
 
 
-def encoder(sequence, seq_length, repr_dim=100, module='lstm', num_layers=1, reuse=None, residual=False,
+def encoder(sequence, seq_length, elmo_emb, repr_dim=100, module='lstm', num_layers=1, reuse=None, residual=False,
             activation=None, layer_norm=False, name='encoder', dropout=None, is_eval=True, **kwargs):
     if num_layers == 1:
         if layer_norm:
@@ -21,7 +21,7 @@ def encoder(sequence, seq_length, repr_dim=100, module='lstm', num_layers=1, reu
 
         with tf.variable_scope(name, reuse=reuse):
             if module == 'lstm':
-                out = bi_lstm(repr_dim, sequence, seq_length, **kwargs)
+                out = bi_lstm(repr_dim, sequence, seq_length, elmo_emb, **kwargs)
                 if activation:
                     out = activation_from_string(activation)(out)
             elif module == 'sru':
@@ -92,6 +92,7 @@ def encoder(sequence, seq_length, repr_dim=100, module='lstm', num_layers=1, reu
 
 # RNN Encoders
 def _bi_rnn(size, fused_rnn, sequence, seq_length, with_projection=False):
+    # import ipdb; ipdb.set_trace()
     output = rnn.fused_birnn(fused_rnn, sequence, seq_length, dtype=tf.float32, scope='rnn')[0]
     output = tf.concat(output, 2)
     if with_projection:
@@ -100,7 +101,11 @@ def _bi_rnn(size, fused_rnn, sequence, seq_length, with_projection=False):
     return output
 
 
-def bi_lstm(size, sequence, seq_length, with_projection=False, **kwargs):
+def bi_lstm(size, sequence, seq_length, elmo_emb, with_projection=False, **kwargs):
+    # import ipdb; ipdb.set_trace()
+    if "elmo" in kwargs and kwargs["elmo"]:
+        size += 1024  # tmp fix
+        sequence = tf.concat([sequence, elmo_emb], axis=2)
     return _bi_rnn(size, tf.contrib.rnn.LSTMBlockFusedCell(size), sequence, seq_length, with_projection)
 
 

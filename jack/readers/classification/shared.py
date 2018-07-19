@@ -24,6 +24,7 @@ class AbstractSingleSupportClassificationModel(TFModelModule):
     def input_ports(self) -> List[TensorPort]:
         if self.shared_resources.embeddings is not None:
             return [Ports.Input.emb_support, Ports.Input.emb_question,
+                    Ports.Input.emb_elmo_support, Ports.Input.emb_elmo_question,
                     Ports.Input.support, Ports.Input.question,
                     Ports.Input.support_length, Ports.Input.question_length,
                     # character information
@@ -32,6 +33,7 @@ class AbstractSingleSupportClassificationModel(TFModelModule):
                     Ports.is_eval]
         else:
             return [Ports.Input.support, Ports.Input.question,
+                    Ports.Input.emb_elmo_support, Ports.Input.emb_elmo_question,
                     Ports.Input.support_length, Ports.Input.question_length,
                     # character information
                     Ports.Input.word_chars, Ports.Input.word_char_length,
@@ -77,7 +79,11 @@ class AbstractSingleSupportClassificationModel(TFModelModule):
 
         embedded_question.set_shape([None, None, input_size])
         embedded_support.set_shape([None, None, input_size])
+        elmo_size = 1024  # hard coding for now
+        tensors.emb_elmo_question.set_shape([None, None, elmo_size])
+        tensors.emb_elmo_support.set_shape([None, None, elmo_size])
 
+        # import ipdb; ipdb.set_trace()
         logits = self.forward_pass(shared_resources, embedded_question, embedded_support,
                                    len(self.shared_resources.answer_vocab), tensors)
 
@@ -117,6 +123,12 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
         self.vocab = self.shared_resources.vocab
         self.config = self.shared_resources.config
         self.embeddings = self.shared_resources.embeddings
+
+        import tensorflow_hub
+        session_config = tf.ConfigProto(allow_soft_placement=True)
+        session_config.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=session_config)
+        self.elmo = tensorflow_hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
         if self.embeddings is not None:
             self.__default_vec = np.zeros([self.embeddings.shape[-1]])
 
@@ -141,6 +153,7 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
         """Defines the outputs of the InputModule"""
         if self.shared_resources.embeddings is not None:
             return [Ports.Input.emb_support, Ports.Input.emb_question,
+                    Ports.Input.emb_elmo_support, Ports.Input.emb_elmo_question,
                     Ports.Input.support, Ports.Input.question,
                     Ports.Input.support_length, Ports.Input.question_length,
                     Ports.Input.sample_id,
@@ -150,6 +163,7 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
                     Ports.is_eval]
         else:
             return [Ports.Input.support, Ports.Input.question,
+                    Ports.Input.emb_elmo_support, Ports.Input.emb_elmo_question,
                     Ports.Input.support_length, Ports.Input.question_length,
                     Ports.Input.sample_id,
                     # character information
@@ -173,6 +187,7 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             for i, (q, a) in enumerate(zip(questions, answers)):
                 preprocessed.append(self.preprocess_instance(i, q, a))
 
+        # import ipdb; ipdb.set_trace()
         return preprocessed
 
     def preprocess_instance(self, idd: int, question: QASetting,
@@ -199,10 +214,12 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
 
     def create_batch(self, annotations: List[MCAnnotation],
                      is_eval: bool, with_answers: bool) -> Mapping[TensorPort, np.ndarray]:
+        batch_question_tokens = [a.question_tokens for a in annotations]
+        batch_support_tokens = [a.support_tokens for a in annotations]
         # also add character information
         word_chars, word_lengths, tokens, vocab, rev_vocab = \
             preprocessing.unique_words_with_chars(
-                [a.question_tokens for a in annotations] + [a.support_tokens for a in annotations],
+                batch_question_tokens + batch_support_tokens,
                 self.shared_resources.char_vocab)
         question_words, support_words = tokens[:len(annotations)], tokens[len(annotations):]
 
@@ -232,10 +249,41 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
 
             xy_dict[Ports.Input.emb_support] = emb_support
             xy_dict[Ports.Input.emb_question] = emb_question
+        # elmo
+        q_tokens_length, q_tokens_input = pad(batch_question_tokens)
+        s_tokens_length, s_tokens_input = pad(batch_support_tokens)
+        elmo_q_embeddings = self.elmo(
+            inputs={
+                "tokens": q_tokens_input,
+                "sequence_len": q_tokens_length
+            },
+            signature="tokens",
+            as_dict=True)["elmo"]
+        elmo_s_embeddings = self.elmo(
+            inputs={
+                "tokens": s_tokens_input,
+                "sequence_len": s_tokens_length
+            },
+            signature="tokens",
+            as_dict=True)["elmo"]
+        print("initialise variables...")
+        self.sess.run(tf.variables_initializer(tf.global_variables(scope="module\/+(bilm|aggregation)")))
+        # self.sess.run(tf.global_variables_initializer())
+        print("elmo emb...")
+        elmo_q, elmo_s = self.sess.run([elmo_q_embeddings, elmo_s_embeddings])
+        xy_dict[Ports.Input.emb_elmo_question] = elmo_q  # tmp
+        xy_dict[Ports.Input.emb_elmo_support] = elmo_s  # tmp
 
         if with_answers:
             xy_dict[Ports.Target.target_index] = [a.answer for a in annotations]
         return numpify(xy_dict)
+
+
+def pad(batch_tokens):
+    max_len = max(len(tokens) for tokens in batch_tokens)
+    pad_tokens = [tokens + [""] * (max_len - len(tokens)) for tokens in batch_tokens]
+    length = [len(tokens) for tokens in batch_tokens]
+    return (length, pad_tokens)
 
 
 def _np_softmax(x):
