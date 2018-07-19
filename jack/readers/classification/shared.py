@@ -8,6 +8,7 @@ from jack.core.tensorflow import TFModelModule
 from jack.readers.classification import util
 from jack.util import preprocessing
 from jack.util.map import numpify
+from allennlp.commands.elmo import ElmoEmbedder
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +125,14 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
         self.config = self.shared_resources.config
         self.embeddings = self.shared_resources.embeddings
 
-        import tensorflow_hub
-        session_config = tf.ConfigProto(allow_soft_placement=True)
-        session_config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=session_config)
-        self.elmo = tensorflow_hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
+        print("loading elmo embedding...")
+        filename = "elmo.hdf5"  # hard coding (temporary)
+        emb = dict()
+        with h5py.File(filename, "r") as f:
+            for k, v in f.items():
+                emb[k] = np.vstack(list(v))
+        self.elmo_dict = emb
+
         if self.embeddings is not None:
             self.__default_vec = np.zeros([self.embeddings.shape[-1]])
 
@@ -250,33 +254,33 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             xy_dict[Ports.Input.emb_support] = emb_support
             xy_dict[Ports.Input.emb_question] = emb_question
         # elmo
-        q_tokens_length, q_tokens_input = pad(batch_question_tokens)
-        s_tokens_length, s_tokens_input = pad(batch_support_tokens)
-        elmo_q_embeddings = self.elmo(
-            inputs={
-                "tokens": q_tokens_input,
-                "sequence_len": q_tokens_length
-            },
-            signature="tokens",
-            as_dict=True)["elmo"]
-        elmo_s_embeddings = self.elmo(
-            inputs={
-                "tokens": s_tokens_input,
-                "sequence_len": s_tokens_length
-            },
-            signature="tokens",
-            as_dict=True)["elmo"]
-        print("initialise variables...")
-        self.sess.run(tf.variables_initializer(tf.global_variables(scope="module\/+(bilm|aggregation)")))
-        # self.sess.run(tf.global_variables_initializer())
+        # use batch_to_ids to convert sentences to character ids
+        import ipdb; ipdb.set_trace()
         print("elmo emb...")
-        elmo_q, elmo_s = self.sess.run([elmo_q_embeddings, elmo_s_embeddings])
+        elmo_q, elmo_s = self.load_elmo(annotations)
+        print("elmo emb finished")
+        assert elmo_q.shape == emb_question.shape
+        assert elmo_s.shape == emb_support.shape
         xy_dict[Ports.Input.emb_elmo_question] = elmo_q  # tmp
         xy_dict[Ports.Input.emb_elmo_support] = elmo_s  # tmp
 
         if with_answers:
             xy_dict[Ports.Target.target_index] = [a.answer for a in annotations]
         return numpify(xy_dict)
+
+    def load_elmo(annotations):
+        emb_q = np_pad([self.elmo_dict[" ".join(a.question_tokens)] for a in annotations])
+        emb_s = np_pad([self.elmo_dict[" ".join(a.support_tokens)] for a in annotations])
+        return (emb_q, emb_s)
+
+def np_pad(batch_embeddings):
+    padded_emb = list()
+    import ipdb; ipdb.set_trace()
+    max_len = max(np_emb.shape[0] for np_emb in batch_embeddings)
+    for np_emb in batch_embeddings:
+        n_sent = np_emb.shape[0]
+        padded_emb.append(np.pad(np_emb, [(0, 0), (0, max_len - n_sent)], mode="constant"))
+    return np.stack(padded_emb)
 
 
 def pad(batch_tokens):
