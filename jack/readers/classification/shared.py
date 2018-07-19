@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import NamedTuple
+import h5py
 
 from jack.core import *
 from jack.core.data_structures import *
