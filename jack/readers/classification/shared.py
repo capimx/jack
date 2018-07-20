@@ -265,11 +265,10 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             xy_dict[Ports.Input.emb_question] = emb_question
         # elmo
         # use batch_to_ids to convert sentences to character ids
-        print("elmo emb...")
         elmo_q, elmo_s = self.load_elmo(annotations)
-        print("elmo emb finished")
-        assert elmo_q.shape == emb_question.shape
-        assert elmo_s.shape == emb_support.shape
+        # compare batch_size and sentence_length (including padding)
+        assert elmo_q.shape[:2] == emb_question.shape[:2]
+        assert elmo_s.shape[:2] == emb_support.shape[:2]
         xy_dict[Ports.Input.emb_elmo_question] = elmo_q  # tmp
         xy_dict[Ports.Input.emb_elmo_support] = elmo_s  # tmp
 
@@ -286,15 +285,22 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             raise KeyError("type must be question or support, but got {}".format(type))
 
         if org_id in self.elmo_dict:
-            emb = self.elmo_dict
+            emb = self.elmo_dict[org_id]
         else:
             emb = self.elmo_dict[self.elmo_id2id[org_id]]
 
         return emb
 
     def load_elmo(self, annotations):
-        emb_q = np_pad([self.elmo_lookup(a.org_id, type="question") for a in annotations])
-        emb_s = np_pad([self.elmo_lookup(a.org_id, type="support") for a in annotations])
+        # swap!!!
+        # swap!!!
+        # swap!!!
+        # swap!!!
+        # swap!!!
+        # swap!!!
+        # swap!!!
+        emb_s = np_pad([self.elmo_lookup(a.org_id, type="question") for a in annotations])
+        emb_q = np_pad([self.elmo_lookup(a.org_id, type="support") for a in annotations])
         return (emb_q, emb_s)
 
 def np_pad(batch_embeddings):

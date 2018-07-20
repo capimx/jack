@@ -170,16 +170,16 @@ if __name__ == "__main__":
         instances = load_converted_file(args.input_file)
         # "data/FEVER/dataset/converted/dev.sentences.p5.s5.ver20180629.jsonl")
         qa_settings = list()
-        print("generating QASettings...")
+        logger.info("generating QASettings...")
         original_ids = list()
         for instance in instances:
             id = instance["captionID"]
-            q = instance["sentence1"]
-            a = instance["sentence2"]
-            qa_settings.append(QASetting(id=id, question=q, support=[a]))
+            premise = instance["sentence1"]
+            hypothesis = instance["sentence2"]
+            qa_settings.append(QASetting(id=id, question=hypothesis, support=[premise]))
             original_ids.append(id)
 
-        print("process QASettings...")
+        logger.info("process QASettings...")
         q_dict, s_dict, id2id_dict = process_qa_setting(
             qa_settings, original_ids)
         save_json(q_dict, args.question_file)

@@ -104,7 +104,7 @@ def _bi_rnn(size, fused_rnn, sequence, seq_length, with_projection=False):
 def bi_lstm(size, sequence, seq_length, elmo_emb, with_projection=False, **kwargs):
     # import ipdb; ipdb.set_trace()
     if "elmo" in kwargs and kwargs["elmo"]:
-        size += 1024  # tmp fix
+        size += int(elmo_emb.shape[-1])
         sequence = tf.concat([sequence, elmo_emb], axis=2)
     return _bi_rnn(size, tf.contrib.rnn.LSTMBlockFusedCell(size), sequence, seq_length, with_projection)
 

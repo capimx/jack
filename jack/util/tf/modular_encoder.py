@@ -24,7 +24,7 @@ def _unique_module_name(module, layer_depth):
 
 
 def modular_encoder(encoder_config, inputs, inputs_length, inputs_mapping, default_repr_dim, dropout, is_eval, elmo):
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     outputs = dict(inputs)
     outputs_length = dict(inputs_length)
     outputs_mapping = dict(inputs_mapping)
