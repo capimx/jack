@@ -117,6 +117,7 @@ MCAnnotation = NamedTuple('MCAnnotation', [
     ('support_length', int),
     ('answer', Optional[int]),
     ('id', Optional[int]),
+    ('org_id', Optional[str])
 ])
 
 
@@ -127,7 +128,14 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
         self.embeddings = self.shared_resources.embeddings
 
         print("loading elmo embedding...")
-        filename = "elmo.hdf5"  # hard coding (temporary)
+        emb_file = "dev_elmo_top.hdf5"  # hard coding (temporary)
+        id2id_file = "id2id.json"
+
+        with open(id2id_file) as f:
+            id2id_dict = json.loads(f)
+        self.elmo_id2id = id2id_dict
+
+        import ipdb; ipdb.set_trace()
         emb = dict()
         with h5py.File(filename, "r") as f:
             for k, v in f.items():
@@ -214,7 +222,8 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             support_ids=s_ids,
             support_length=s_length,
             answer=self.shared_resources.answer_vocab(answers[0].text) if has_answers else 0,
-            id=idd
+            id=idd,
+            org_id=question.id
         )
 
     def create_batch(self, annotations: List[MCAnnotation],
@@ -256,7 +265,6 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             xy_dict[Ports.Input.emb_question] = emb_question
         # elmo
         # use batch_to_ids to convert sentences to character ids
-        import ipdb; ipdb.set_trace()
         print("elmo emb...")
         elmo_q, elmo_s = self.load_elmo(annotations)
         print("elmo emb finished")
@@ -269,18 +277,26 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             xy_dict[Ports.Target.target_index] = [a.answer for a in annotations]
         return numpify(xy_dict)
 
-    def load_elmo(annotations):
-        emb_q = np_pad([self.elmo_dict[" ".join(a.question_tokens)] for a in annotations])
-        emb_s = np_pad([self.elmo_dict[" ".join(a.support_tokens)] for a in annotations])
+    def elmo_resolve(org_id):
+        if org_id in self.elmo_dict:
+            emb = self.elmo_dict
+        else:
+            emb = self.elmo_dict[self.elmo_id2id[org_id]]
+
+        return emb
+
+    def load_elmo(self, annotations):
+        import ipdb; ipdb.set_trace()
+        emb_q = np_pad([self.elmo_lookup(a.org_id) for a in annotations])
+        emb_s = np_pad([self.elmo_lookup(a.org_id) for a in annotations])
         return (emb_q, emb_s)
 
 def np_pad(batch_embeddings):
     padded_emb = list()
-    import ipdb; ipdb.set_trace()
     max_len = max(np_emb.shape[0] for np_emb in batch_embeddings)
     for np_emb in batch_embeddings:
         n_sent = np_emb.shape[0]
-        padded_emb.append(np.pad(np_emb, [(0, 0), (0, max_len - n_sent)], mode="constant"))
+        padded_emb.append(np.pad(np_emb, [(0, max_len - n_sent), (0, 0)], mode="constant"))
     return np.stack(padded_emb)
 
 
