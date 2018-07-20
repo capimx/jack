@@ -2,6 +2,7 @@
 
 from typing import NamedTuple
 import h5py
+import json
 
 from jack.core import *
 from jack.core.data_structures import *
@@ -127,17 +128,16 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
         self.config = self.shared_resources.config
         self.embeddings = self.shared_resources.embeddings
 
-        print("loading elmo embedding...")
-        emb_file = "dev_elmo_top.hdf5"  # hard coding (temporary)
-        id2id_file = "id2id.json"
+        logger.info("loading elmo embedding...")
+        emb_file = "test.hdf5"  # hard coding (temporary)
+        id2id_file = "test_id2id.json"
 
         with open(id2id_file) as f:
-            id2id_dict = json.loads(f)
+            id2id_dict = json.load(f)
         self.elmo_id2id = id2id_dict
 
-        import ipdb; ipdb.set_trace()
         emb = dict()
-        with h5py.File(filename, "r") as f:
+        with h5py.File(emb_file, "r") as f:
             for k, v in f.items():
                 emb[k] = np.vstack(list(v))
         self.elmo_dict = emb
@@ -277,7 +277,14 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
             xy_dict[Ports.Target.target_index] = [a.answer for a in annotations]
         return numpify(xy_dict)
 
-    def elmo_resolve(org_id):
+    def elmo_lookup(self, org_id, type):
+        if type == "question":
+            org_id = "Q" + org_id
+        elif type == "support":
+            org_id = "S" + org_id
+        else:
+            raise KeyError("type must be question or support, but got {}".format(type))
+
         if org_id in self.elmo_dict:
             emb = self.elmo_dict
         else:
@@ -286,9 +293,8 @@ class ClassificationSingleSupportInputModule(OnlineInputModule[MCAnnotation]):
         return emb
 
     def load_elmo(self, annotations):
-        import ipdb; ipdb.set_trace()
-        emb_q = np_pad([self.elmo_lookup(a.org_id) for a in annotations])
-        emb_s = np_pad([self.elmo_lookup(a.org_id) for a in annotations])
+        emb_q = np_pad([self.elmo_lookup(a.org_id, type="question") for a in annotations])
+        emb_s = np_pad([self.elmo_lookup(a.org_id, type="support") for a in annotations])
         return (emb_q, emb_s)
 
 def np_pad(batch_embeddings):
