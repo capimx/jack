@@ -255,18 +255,30 @@ class SimpleClassificationOutputModule(OutputModule):
     def input_ports(self) -> List[TensorPort]:
         return [Ports.Prediction.logits]
 
-    def __call__(self, questions: List[QASetting], tensors: Mapping[TensorPort, np.ndarray]) -> List[Answer]:
+    def __call__(self, questions: List[QASetting], tensors: Mapping[TensorPort, np.ndarray],
+                 ) -> List[Answer]:
         # len(inputs) == batch size
         # logits: [batch_size, max_num_candidates]
         logits = tensors[Ports.Prediction.logits]
         winning_indices = np.argmax(logits, axis=1)
         result = []
         for index_in_batch, question in enumerate(questions):
-            winning_index = winning_indices[index_in_batch]
-            score = _np_softmax(logits[index_in_batch])[winning_index]
-            if self._shared_resources is not None and hasattr(self._shared_resources, 'answer_vocab'):
-                ans = Answer(self._shared_resources.answer_vocab.get_sym(winning_index), score=score)
+            if 1:
+                # produces lists with a score for _each_ candidate.
+                scores_all_candidates = _np_softmax(logits[index_in_batch])
+                answer_list = []
+                for idx in [0,1,2]:
+                    # one_candidate_answer = Answer(candidate, score=scores_all_candidates[icandidate])
+                    one_candidate_answer = Answer(self._shared_resources.answer_vocab.get_sym(idx), score=scores_all_candidates[idx])
+                    answer_list.append(one_candidate_answer)
+                result.append(answer_list)
             else:
-                ans = Answer(question.candidates[winning_index], score=score)
-            result.append([ans])
+                # produces lists with only the score for the top candidate.
+                winning_index = winning_indices[index_in_batch]
+                score = _np_softmax(logits[index_in_batch])[winning_index]
+                if self._shared_resources is not None and hasattr(self._shared_resources, 'answer_vocab'):
+                    ans = Answer(self._shared_resources.answer_vocab.get_sym(winning_index), score=score)
+                else:
+                    ans = Answer(question.candidates[winning_index], score=score)
+                result.append([ans])
         return result
