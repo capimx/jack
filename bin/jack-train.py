@@ -91,7 +91,7 @@ def run(loader,
 
         if embedding_file is not None and embedding_format is not None:
             emb_file = 'glove.6B.50d.txt'
-            embeddings = load_embeddings(path.join('data', 'GloVe', emb_file), 'glove')
+            embeddings = load_embeddings(path.join('/content/jack/data', 'GloVe', emb_file), 'glove')
             logger.info('loaded pre-trained embeddings ({})'.format(emb_file))
         else:
             embeddings = None
