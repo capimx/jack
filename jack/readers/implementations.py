@@ -58,6 +58,7 @@ def reader_from_file(load_dir: str, **kwargs):
     """
     shared_resources = create_shared_resources()
     shared_resources.load(os.path.join(load_dir, "shared_resources"))
+	print(os.path.join(load_dir, "shared_resources"))
     if kwargs:
         shared_resources.config.update(kwargs)
     reader = readers[shared_resources.config["reader"]](shared_resources)
