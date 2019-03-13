@@ -63,8 +63,8 @@ class Embeddings:
         with open(os.path.join(dir, "config.yaml"), "r") as f:
             config = yaml.load(f)
         if config["embedding_file"] is not None:
-			print("Debugging emb1")
-			print(dir)
+            print("Debugging emb1")
+            print(dir)
             return load_embeddings(config["embedding_file"], typ=config.get("emb_format", None))
 
 
