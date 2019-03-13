@@ -103,8 +103,8 @@ def load_embeddings(file, typ='glove', **options):
 
     elif typ.lower() == "memory_map_dir":
         from jack.io.embeddings.memory_map import load_memory_map_dir
-		print("Debugging emb2")
-		print(file)
+        print("Debugging emb2")
+        print(file)
         return load_memory_map_dir(file)
 
     elif typ.lower() == "pkl":

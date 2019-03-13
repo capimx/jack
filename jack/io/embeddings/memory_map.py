@@ -19,8 +19,8 @@ def load_memory_map_dir(directory: str) -> Embeddings:
         Embeddings object with a lookup matrix that is backed by a memory map.
 
     """
-	print("mm debug")
-	print(directory)
+    print("mm debug")
+    print(directory)
     meta_file = os.path.join(directory, "meta.json")
     mem_map_file = os.path.join(directory, "memory_map")
     with open(meta_file, "r") as f:

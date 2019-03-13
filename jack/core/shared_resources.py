@@ -72,8 +72,8 @@ class SharedResources:
                 with open(os.path.join(path, f), 'r') as f:
                     self.config = yaml.load(f)
             elif f == 'embeddings':
-				print("DEbugging SR")
-				print(os.path.join(path, f))
+                print("DEbugging SR")
+                print(os.path.join(path, f))
                 self.embeddings = Embeddings.from_dir(os.path.join(path, f))
             else:
                 v = Vocab()
