@@ -63,6 +63,8 @@ class Embeddings:
         with open(os.path.join(dir, "config.yaml"), "r") as f:
             config = yaml.load(f)
         if config["embedding_file"] is not None:
+			print("Debugging emb1")
+			print(dir)
             return load_embeddings(config["embedding_file"], typ=config.get("emb_format", None))
 
 
@@ -101,6 +103,8 @@ def load_embeddings(file, typ='glove', **options):
 
     elif typ.lower() == "memory_map_dir":
         from jack.io.embeddings.memory_map import load_memory_map_dir
+		print("Debugging emb2")
+		print(file)
         return load_memory_map_dir(file)
 
     elif typ.lower() == "pkl":
